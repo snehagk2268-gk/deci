@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  --background: #D7DEF1;
+  --foreground: #2c3e52;
+  --muted: #5A85A9;
+  --border: #B1CFEB;
+  --azure-500: #5A85A9;
+  --azure-400: #7aa3bf;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100%;
+}
+
+body {
+  font-family: "Inter Tight", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background: rgba(177, 207, 235, 0.45);
+  color: #2c3e52;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(90, 133, 169, 0.22);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(90, 133, 169, 0.40);
+}
+
+/* Decorative chevron rendering */
+.numeric-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-noise {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/><feColorMatrix values='0 0 0 0 0.36  0 0 0 0 0.52  0 0 0 0 0.66  0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Severity dots */
+.dot-pulse::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  margin-right: 8px;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: ring 2s infinite;
+}
+@keyframes ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(90, 133, 169, 0.50);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(90, 133, 169, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(90, 133, 169, 0);
+  }
+}
+
+/* ── Animations ─────────────────────────────────────────────── */
+
+/* Fade up — for hero text, cards */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-up-1 { animation: fade-up 0.7s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-up-2 { animation: fade-up 0.7s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-up-3 { animation: fade-up 0.7s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-up-4 { animation: fade-up 0.7s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-up-5 { animation: fade-up 0.7s 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Fade in */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in { animation: fade-in 0.6s ease both; }
+
+/* Float — gentle up/down bob */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+/* Shimmer — for loading skeletons */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, #D7DEF1 25%, #B1CFEB 50%, #D7DEF1 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Slide in from left */
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-left { animation: slide-in-left 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Scale in — for badges, buttons */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Gradient shift — for hero background */
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
