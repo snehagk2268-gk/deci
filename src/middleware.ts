@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "decitrace-jwt-secret-2026"
+  process.env.JWT_SECRET || "decitrace-development-fallback-only-do-not-use-in-prod"
 );
 
 const COOKIE_NAME = "dt-session";

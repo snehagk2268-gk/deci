@@ -5,7 +5,7 @@ import { query, queryOne } from "./db";
 import { v4 as uuidv4 } from "uuid";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "decitrace-secret-key-change-in-production"
+  process.env.JWT_SECRET || "decitrace-development-fallback-only-do-not-use-in-prod"
 );
 
 const COOKIE_NAME = "dt-session";
