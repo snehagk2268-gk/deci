@@ -44,7 +44,7 @@ export default async function DashboardPage() {
 
   const avgConfidence =
     confidenceRows && confidenceRows.length
-      ? confidenceRows.reduce((s, r) => s + Number(r.confidence ?? 0), 0) / confidenceRows.length
+      ? confidenceRows.reduce((s: number, r: any) => s + Number(r.confidence ?? 0), 0) / confidenceRows.length
       : null;
 
   // 14-day trend: counts per day
