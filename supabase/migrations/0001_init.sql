@@ -205,3 +205,20 @@ drop trigger if exists trg_log_decision_updated on public.decisions;
 create trigger trg_log_decision_updated
 after update on public.decisions
 for each row execute function public.log_decision_updated();
+
+-- Views for Display -----------------------------------------------
+create or replace view public.decisions_display as
+select 
+  d.id,
+  d.model_name,
+  d.decision_type,
+  d.outcome,
+  d.risk_level,
+  d.confidence,
+  d.created_at,
+  p.email as reviewer_email,
+  d.tags,
+  d.cost_usd
+from public.decisions d
+left join public.profiles p on d.user_id = p.id
+order by d.created_at desc;
