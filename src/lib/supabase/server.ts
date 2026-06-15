@@ -2,9 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getDb, saveDb } from "@/lib/supabase/mockDb";
 
-const isMockMode =
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL.includes("lmasoabgzlsvxavihnqw");
+const isMockMode = false;
 
 // Synchronous server-side Mock Query Builder to avoid HTTP fetch overhead
 class ServerMockQueryBuilder {

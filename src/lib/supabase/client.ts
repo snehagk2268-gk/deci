@@ -1,8 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 
-const isMockMode =
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL.includes("lmasoabgzlsvxavihnqw");
+const isMockMode = false;
 
 class MockQueryBuilder {
   table: string;
