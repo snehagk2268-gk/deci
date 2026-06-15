@@ -80,7 +80,7 @@ export default function HomePage() {
           <Feature icon={<Database className="h-5 w-5" />} title="Structured capture" body="Log prompts, responses, model versions, latency, cost, tokens, and arbitrary metadata against a typed schema." delay="-1" />
           <Feature icon={<GitBranch className="h-5 w-5" />} title="Review trails" body="Every override, flag, and approval is signed by a reviewer with full revision history kept in an event log." delay="-2" />
           <Feature icon={<LineChart className="h-5 w-5" />} title="Analytics" body="Slice by model, agent, risk, or tag. Watch outcome shifts over time and detect drift before it bites." delay="-3" />
-          <Feature icon={<Lock className="h-5 w-5" />} title="Row-level security" body="Supabase RLS scopes data to the workspace. Roles for admin, auditor, and viewer ship by default." delay="-4" />
+          <Feature icon={<Lock className="h-5 w-5" />} title="Access control list" body="JWT-secured sessions scope data to the workspace. Roles for admin, auditor, and viewer ship by default." delay="-4" />
           <Feature icon={<Sparkles className="h-5 w-5" />} title="Risk classification" body="Tag decisions across four risk tiers and route critical items to mandatory human review." delay="-5" />
           <Feature icon={<Shield className="h-5 w-5" />} title="Defensible exports" body="Export filtered decision sets with embedded chain-of-custody metadata for regulators and counsel." delay="-5" />
         </div>
@@ -117,7 +117,7 @@ export default function HomePage() {
             <Logo />
             <span>© 2026 DeciTrace. All decisions accounted for.</span>
           </div>
-          <span>Built on Next.js + Supabase</span>
+          <span>Built on Next.js + MySQL</span>
         </div>
       </footer>
     </div>

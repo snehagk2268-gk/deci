@@ -1,63 +1,61 @@
 import Link from "next/link";
 import { ArrowUpRight, Activity, AlertTriangle, ShieldCheck, Cpu } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import type { Decision } from "@/types";
+import { getSessionUser } from "@/lib/mysql/auth";
+import { query } from "@/lib/mysql/db";
 import { formatNumber, formatRelative } from "@/lib/utils";
 import { OutcomeBadge, RiskBadge } from "@/components/decisions/Badges";
 import { TrendChart } from "@/components/charts/TrendChart";
+import type { Decision } from "@/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
-  // Get recent decisions for this user
-  const { data: recent } = await supabase
-    .from("decisions")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const recent = await query<Decision>(
+    "SELECT * FROM decisions WHERE user_id = ? ORDER BY created_at DESC LIMIT 8",
+    [user!.id]
+  );
 
-  // Aggregates (total / flagged / approved / avg confidence)
-  const { count: total } = await supabase
-    .from("decisions")
-    .select("id", { count: "exact", head: true });
+  const [{ total }] = await query<{ total: number }>(
+    "SELECT COUNT(*) as total FROM decisions WHERE user_id = ?",
+    [user!.id]
+  );
 
-  const { count: flagged } = await supabase
-    .from("decisions")
-    .select("id", { count: "exact", head: true })
-    .eq("outcome", "flagged");
+  const [{ flagged }] = await query<{ flagged: number }>(
+    "SELECT COUNT(*) as flagged FROM decisions WHERE user_id = ? AND outcome = 'flagged'",
+    [user!.id]
+  );
 
-  const { count: approved } = await supabase
-    .from("decisions")
-    .select("id", { count: "exact", head: true })
-    .eq("outcome", "approved");
+  const [{ approved }] = await query<{ approved: number }>(
+    "SELECT COUNT(*) as approved FROM decisions WHERE user_id = ? AND outcome = 'approved'",
+    [user!.id]
+  );
 
-  const { data: confidenceRows } = await supabase
-    .from("decisions")
-    .select("confidence")
-    .not("confidence", "is", null)
-    .limit(1000);
+  const confidenceRows = await query<{ confidence: number }>(
+    "SELECT confidence FROM decisions WHERE user_id = ? AND confidence IS NOT NULL LIMIT 1000",
+    [user!.id]
+  );
 
   const avgConfidence =
-    confidenceRows && confidenceRows.length
-      ? confidenceRows.reduce((s: number, r: any) => s + Number(r.confidence ?? 0), 0) / confidenceRows.length
+    confidenceRows.length
+      ? confidenceRows.reduce((s, r) => s + Number(r.confidence), 0) / confidenceRows.length
       : null;
 
-  // 14-day trend: counts per day
-  const { data: trendRows } = await supabase
-    .from("decisions")
-    .select("created_at, outcome")
-    .gte("created_at", new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString())
-    .order("created_at", { ascending: true });
+  const trendRows = await query<{ created_at: string; outcome: string }>(
+    "SELECT created_at, outcome FROM decisions WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 14 DAY) ORDER BY created_at ASC",
+    [user!.id]
+  );
 
-  const trend = buildTrend(trendRows ?? []);
+  const trend = buildTrend(trendRows);
+  const greetingName = user?.full_name || user?.email?.split("@")[0] || "there";
 
-  const decisions = (recent ?? []) as Decision[];
-  const greetingName = (user?.user_metadata?.full_name as string) || user?.email?.split("@")[0] || "there";
+  // Parse JSON tags for decisions
+  const decisions = recent.map((d: any) => ({
+    ...d,
+    tags: typeof d.tags === "string" ? JSON.parse(d.tags || "null") : d.tags,
+    metadata: typeof d.metadata === "string" ? JSON.parse(d.metadata || "null") : d.metadata,
+  })) as Decision[];
 
   return (
     <div>
@@ -92,9 +90,7 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs uppercase tracking-wider text-ink-700/60">Last 14 days</div>
-              <h2 className="mt-1 font-display text-xl font-semibold tracking-tight">
-                Decision volume by outcome
-              </h2>
+              <h2 className="mt-1 font-display text-xl font-semibold tracking-tight">Decision volume by outcome</h2>
             </div>
           </div>
           <div className="mt-6 h-72">
@@ -104,26 +100,12 @@ export default async function DashboardPage() {
 
         <div className="rounded-2xl border border-azure-300/40 bg-gradient-to-br from-azure-500 via-azure-400 to-[#B1CFEB] p-6 text-white shadow-card">
           <div className="text-xs uppercase tracking-wider text-azure-100">Compliance posture</div>
-          <h2 className="mt-1 font-display text-xl font-semibold tracking-tight">
-            All systems on the record.
-          </h2>
+          <h2 className="mt-1 font-display text-xl font-semibold tracking-tight">All systems on the record.</h2>
           <ul className="mt-5 space-y-3 text-sm">
-            <li className="flex items-center justify-between border-b border-white/20 pb-2">
-              <span>RLS enforced</span>
-              <span className="font-mono text-azure-100">on</span>
-            </li>
-            <li className="flex items-center justify-between border-b border-white/20 pb-2">
-              <span>Event log</span>
-              <span className="font-mono text-azure-100">append-only</span>
-            </li>
-            <li className="flex items-center justify-between border-b border-white/20 pb-2">
-              <span>Reviewer roles</span>
-              <span className="font-mono text-azure-100">3</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span>Last export</span>
-              <span className="font-mono text-azure-100">never</span>
-            </li>
+            <li className="flex items-center justify-between border-b border-white/20 pb-2"><span>MySQL database</span><span className="font-mono text-azure-100">connected</span></li>
+            <li className="flex items-center justify-between border-b border-white/20 pb-2"><span>Event log</span><span className="font-mono text-azure-100">append-only</span></li>
+            <li className="flex items-center justify-between border-b border-white/20 pb-2"><span>Auth</span><span className="font-mono text-azure-100">JWT sessions</span></li>
+            <li className="flex items-center justify-between"><span>Last export</span><span className="font-mono text-azure-100">never</span></li>
           </ul>
         </div>
       </div>
@@ -131,49 +113,27 @@ export default async function DashboardPage() {
       <div className="mt-8 rounded-2xl border border-ink-900/10 bg-white/80 shadow-card backdrop-blur">
         <div className="flex items-center justify-between border-b border-ink-900/10 px-6 py-4">
           <h2 className="font-display text-xl font-semibold tracking-tight">Recent decisions</h2>
-          <Link
-            href="/decisions"
-            className="text-sm font-medium text-azure-500 hover:underline"
-          >
-            See all
-          </Link>
+          <Link href="/decisions" className="text-sm font-medium text-azure-500 hover:underline">See all</Link>
         </div>
         {decisions.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <div className="font-display text-xl">No decisions yet.</div>
-            <p className="mt-2 text-sm text-ink-700/70">
-              Log your first decision to see it appear here.
-            </p>
-            <Link
-              href="/decisions/new"
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-azure-500 px-4 py-2 text-sm font-medium text-white"
-            >
-              Log decision
-            </Link>
+            <p className="mt-2 text-sm text-ink-700/70">Log your first decision to see it appear here.</p>
+            <Link href="/decisions/new" className="mt-4 inline-flex items-center gap-2 rounded-full bg-azure-500 px-4 py-2 text-sm font-medium text-white">Log decision</Link>
           </div>
         ) : (
           <div className="divide-y divide-ink-900/5">
             {decisions.map((d) => (
-              <Link
-                key={d.id}
-                href={`/decisions/${d.id}`}
-                className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-azure-50/50"
-              >
+              <Link key={d.id} href={`/decisions/${d.id}`} className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-azure-50/50">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-xs text-ink-700/70">
                     <span className="font-mono">{d.model_name}</span>
-                    {d.model_version && (
-                      <span className="font-mono text-ink-700/50">@{d.model_version}</span>
-                    )}
+                    {d.model_version && <span className="font-mono text-ink-700/50">@{d.model_version}</span>}
                     <span>·</span>
                     <span>{formatRelative(d.created_at)}</span>
                   </div>
-                  <div className="mt-1 truncate font-medium text-ink-900">
-                    {d.decision_type}
-                  </div>
-                  {d.prompt && (
-                    <div className="mt-0.5 truncate text-sm text-ink-700/70">{d.prompt}</div>
-                  )}
+                  <div className="mt-1 truncate font-medium text-ink-900">{d.decision_type}</div>
+                  {d.prompt && <div className="mt-0.5 truncate text-sm text-ink-700/70">{d.prompt}</div>}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <RiskBadge level={d.risk_level} />
@@ -188,19 +148,7 @@ export default async function DashboardPage() {
   );
 }
 
-function KPI({
-  label,
-  value,
-  icon,
-  accent,
-  delay = "",
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accent: "azure" | "emerald" | "amber" | "indigo";
-  delay?: string;
-}) {
+function KPI({ label, value, icon, accent, delay = "" }: { label: string; value: string; icon: React.ReactNode; accent: "azure" | "emerald" | "amber" | "indigo"; delay?: string }) {
   const accents: Record<string, string> = {
     azure: "bg-azure-50 text-azure-500 ring-azure-100",
     emerald: "bg-emerald-50 text-emerald-600 ring-emerald-100",
@@ -211,13 +159,9 @@ function KPI({
     <div className={`${delay} rounded-2xl border border-ink-900/10 bg-white/80 p-5 shadow-card backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-wider text-ink-700/60">{label}</span>
-        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg ring-1 ${accents[accent]}`}>
-          {icon}
-        </span>
+        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg ring-1 ${accents[accent]}`}>{icon}</span>
       </div>
-      <div className="mt-3 font-display text-3xl font-semibold tracking-tight numeric-tabular">
-        {value}
-      </div>
+      <div className="mt-3 font-display text-3xl font-semibold tracking-tight numeric-tabular">{value}</div>
     </div>
   );
 }
@@ -228,13 +172,7 @@ function buildTrend(rows: { created_at: string; outcome: string }[]) {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - i);
-    days.push({
-      date: d.toISOString().slice(5, 10),
-      approved: 0,
-      flagged: 0,
-      rejected: 0,
-      other: 0,
-    });
+    days.push({ date: d.toISOString().slice(5, 10), approved: 0, flagged: 0, rejected: 0, other: 0 });
   }
   for (const r of rows) {
     const key = new Date(r.created_at).toISOString().slice(5, 10);

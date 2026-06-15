@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 export default function NewDecisionPage() {
   const router = useRouter();
@@ -37,15 +36,6 @@ export default function NewDecisionPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Not signed in.");
-      setLoading(false);
-      return;
-    }
 
     let metadata: object | null = null;
     if (form.metadata.trim()) {
@@ -58,41 +48,38 @@ export default function NewDecisionPage() {
       }
     }
 
-    const tags = form.tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
 
-    const payload = {
-      user_id: user.id,
-      decision_type: form.decision_type,
-      model_name: form.model_name,
-      model_version: form.model_version || null,
-      agent_name: form.agent_name || null,
-      prompt: form.prompt || null,
-      response: form.response || null,
-      outcome: form.outcome,
-      risk_level: form.risk_level,
-      confidence: form.confidence ? Number(form.confidence) : null,
-      latency_ms: form.latency_ms ? Number(form.latency_ms) : null,
-      tokens_input: form.tokens_input ? Number(form.tokens_input) : null,
-      tokens_output: form.tokens_output ? Number(form.tokens_output) : null,
-      cost_usd: form.cost_usd ? Number(form.cost_usd) : null,
-      tags: tags.length ? tags : null,
-      metadata,
-    };
+    const res = await fetch("/api/decisions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        decision_type: form.decision_type,
+        model_name: form.model_name,
+        model_version: form.model_version || null,
+        agent_name: form.agent_name || null,
+        prompt: form.prompt || null,
+        response: form.response || null,
+        outcome: form.outcome,
+        risk_level: form.risk_level,
+        confidence: form.confidence ? Number(form.confidence) : null,
+        latency_ms: form.latency_ms ? Number(form.latency_ms) : null,
+        tokens_input: form.tokens_input ? Number(form.tokens_input) : null,
+        tokens_output: form.tokens_output ? Number(form.tokens_output) : null,
+        cost_usd: form.cost_usd ? Number(form.cost_usd) : null,
+        tags: tags.length ? tags : null,
+        metadata,
+      }),
+    });
 
-    const { data, error: err } = await supabase
-      .from("decisions")
-      .insert(payload)
-      .select("id")
-      .single();
-
+    const data = await res.json();
     setLoading(false);
-    if (err) {
-      setError(err.message);
+
+    if (!res.ok) {
+      setError(data.error || "Failed to save decision.");
       return;
     }
+
     router.push(`/decisions/${data.id}`);
     router.refresh();
   }

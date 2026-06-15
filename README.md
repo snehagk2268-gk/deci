@@ -1,6 +1,6 @@
 # Lattice — AI Decision Audit System
 
-A full-stack web application for recording, auditing, and analyzing AI decisions. Built with Next.js 14 (App Router), Supabase (Postgres + Auth + Row Level Security), Tailwind CSS, and Recharts.
+A full-stack web application for recording, auditing, and analyzing AI decisions. Built with Next.js 14 (App Router), MySQL, Tailwind CSS, and Recharts.
 
 The aesthetic: an editorial white / light-blue / deep-blue theme — the look of a serious audit ledger.
 
@@ -27,7 +27,7 @@ For each decision Lattice records:
 |---|---|
 | `/` | Editorial landing page with feature overview and schema preview |
 | `/auth/login` | Email + password sign-in |
-| `/auth/signup` | Account creation (auto-creates a profile via trigger) |
+| `/auth/signup` | Account creation |
 | `/dashboard` | KPI cards, 14-day decision-volume trend, compliance posture, recent decisions |
 | `/decisions` | Searchable, filterable, paginated ledger |
 | `/decisions/new` | Form to log a new decision (with JSON metadata + tags) |
@@ -40,8 +40,8 @@ For each decision Lattice records:
 ## Stack
 
 - **Framework**: Next.js 14 (App Router, RSC + Server Actions where appropriate)
-- **Auth**: Supabase Auth via `@supabase/ssr` (email + password; ready for OAuth providers)
-- **Database**: Supabase Postgres with typed enums and Row Level Security
+- **Auth**: JWT-based session cookies stored in HTTP-only cookies
+- **Database**: MySQL with schema migrations and indexed search
 - **Styling**: Tailwind CSS with a custom token system (`ink`, `azure`, `paper`)
 - **Charts**: Recharts
 - **Icons**: lucide-react
@@ -51,42 +51,42 @@ For each decision Lattice records:
 
 ## Getting started
 
-### 1. Create a Supabase project
-
-Go to [supabase.com](https://supabase.com) and create a new project. From **Settings → API**, copy:
-
-- Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-- `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-### 2. Apply the schema
-
-Open the **SQL Editor** in Supabase, paste the contents of `supabase/migrations/0001_init.sql`, and run. This creates:
-
-- The `profiles`, `decisions`, and `decision_events` tables
-- Enum types: `decision_outcome`, `risk_level`, `user_role`
-- Row Level Security policies (every user only sees their own data)
-- A trigger that auto-creates a `profiles` row when a user signs up
-- Triggers that append immutable events to `decision_events` whenever a decision is created or its outcome / risk changes
-
-### 3. Configure environment
+### 1. Configure environment
 
 ```bash
 cp .env.local.example .env.local
-# Edit .env.local with your Supabase URL and anon key
+# Edit .env.local with your MySQL connection string and a JWT secret.
 ```
 
-### 4. Install and run
+### 2. Install dependencies
 
 ```bash
 npm install
+```
+
+### 3. Initialize & Seed Database
+
+Ensure your MySQL instance is running and the credentials in `.env.local` are correct. Start the Next.js dev server:
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:3000.
+Then, visit [http://localhost:3000/api/setup?seed=true](http://localhost:3000/api/setup?seed=true) in your browser. This will:
+- Create the `profiles`, `decisions`, and `decision_events` tables.
+- Seed the database with a default auditor account (`auditor@example.com` / `password`) and sample decisions.
 
-### 5. (Optional) seed sample data
+### 4. Run the application
 
-After signing up and signing in, open the Supabase SQL Editor while authenticated as your user and run `supabase/seed.sql`. This inserts five sample decisions tied to your `auth.uid()`.
+If not already running, start the development server:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) and sign in using:
+- **Email**: `auditor@example.com`
+- **Password**: `password`
 
 ---
 
@@ -105,8 +105,8 @@ src/
 │   │   └── settings/
 │   ├── auth/
 │   │   ├── login/
-│   │   ├── signup/
-│   │   └── callback/
+│   │   └── signup/
+│   ├── api/                    # API endpoints (decisions, setup, export)
 │   ├── globals.css             # Theme tokens + base styles
 │   ├── layout.tsx              # Root layout
 │   └── page.tsx                # Landing page
@@ -116,34 +116,19 @@ src/
 │   ├── layout/                 # Sidebar, MobileTopbar
 │   └── SettingsForm.tsx
 ├── lib/
-│   ├── supabase/               # client / server / middleware helpers
+│   ├── mysql/                  # Connection pool, authentication, schemas
 │   └── utils.ts                # cn(), formatters
 ├── types/                      # Decision, Profile types
 └── middleware.ts               # Session refresh + auth gating
-supabase/
-├── migrations/0001_init.sql    # Schema, RLS, triggers
-└── seed.sql                    # Optional sample data
 ```
 
 ---
 
 ## Security model
 
-- **Row Level Security on every table.** A user can only ever read or write their own decisions and only insert events for decisions they own.
-- **Append-only event log.** `decision_events` has no `update` or `delete` policies — past records cannot be rewritten.
-- **Session refresh.** The Next.js middleware refreshes Supabase sessions on every request and gates `/dashboard`, `/decisions`, `/analytics`, `/settings` behind auth.
-- **Server-side data fetching.** Protected pages run as React Server Components with the Supabase server client, so the anon key alone is never enough — every query carries the user's session JWT.
-
----
-
-## Extending
-
-Common next steps:
-
-- **Multi-tenant orgs**: add an `organizations` table and an `organization_id` foreign key on `decisions` + `profiles`. Update RLS to scope by org membership.
-- **Roles** (`admin` / `auditor` / `viewer`): the `profiles.role` column already exists; extend RLS and route guards to use it.
-- **CSV / JSON export**: add an API route that streams filtered decisions back as a download with embedded SHA-256 chain-of-custody hashes.
-- **Webhook ingestion**: an API route at `/api/decisions/ingest` that accepts a service-role-authenticated POST from your AI agents in production.
+- **JWT Session Security.** Next.js middleware verifies the `dt-session` cookie on all protected routes and API requests, extracting user details.
+- **Tenant Isolation.** All decision queries include a `WHERE user_id = ?` clause utilizing the verified user's ID to prevent unauthorized access.
+- **Append-only event log.** `decision_events` records audit logs for tracking actions over decisions.
 
 ---
 

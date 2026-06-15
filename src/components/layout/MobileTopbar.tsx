@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Plus, LogOut, LayoutDashboard, ListChecks, PieChart, Settings, FileDown } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -21,8 +20,7 @@ export function MobileTopbar({ email }: { email: string | null }) {
   const router = useRouter();
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/auth/login");
     router.refresh();
   }

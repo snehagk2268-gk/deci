@@ -11,7 +11,6 @@ import {
   LogOut,
   FileDown,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -27,8 +26,7 @@ export function Sidebar({ email }: { email: string | null }) {
   const router = useRouter();
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/auth/login");
     router.refresh();
   }

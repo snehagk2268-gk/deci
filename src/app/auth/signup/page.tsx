@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Loader2, Mail, Lock, User, Building2, ArrowRight } from "lucide-react";
 
 export default function SignupPage() {
@@ -14,33 +13,28 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     setLoading(true);
-    const supabase = createClient();
-    const { data, error: err } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, organization },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, fullName, organization }),
     });
+
+    const data = await res.json();
     setLoading(false);
-    if (err) {
-      setError(err.message);
+
+    if (!res.ok) {
+      setError(data.error || "Signup failed.");
       return;
     }
-    if (data.session) {
-      router.push("/dashboard");
-      router.refresh();
-    } else {
-      setInfo("Check your email to confirm your account, then sign in.");
-    }
+
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -102,16 +96,11 @@ export default function SignupPage() {
             {error}
           </div>
         )}
-        {info && (
-          <div className="rounded-lg border border-azure-200 bg-azure-50 px-3 py-2 text-sm text-azure-500">
-            {info}
-          </div>
-        )}
 
         <button
           type="submit"
           disabled={loading}
-          className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink-900 px-5 py-3 text-sm font-medium text-paper-50 shadow-card transition hover:bg-azure-500 disabled:opacity-60"
+          className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-azure-500 px-5 py-3 text-sm font-medium text-white shadow-card transition hover:bg-azure-400 disabled:opacity-60"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Create account

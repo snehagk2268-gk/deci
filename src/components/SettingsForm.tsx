@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 export function SettingsForm({
   email,
@@ -28,21 +27,17 @@ export function SettingsForm({
     setErr(null);
     setMsg(null);
     setSaving(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
 
-    const { error } = await supabase.from("profiles").upsert({
-      id: user.id,
-      email,
-      full_name: name || null,
-      organization: org || null,
+    const res = await fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ full_name: name || null, organization: org || null }),
     });
+
     setSaving(false);
-    if (error) {
-      setErr(error.message);
+    if (!res.ok) {
+      const data = await res.json();
+      setErr(data.error || "Failed to save.");
       return;
     }
     setMsg("Saved.");

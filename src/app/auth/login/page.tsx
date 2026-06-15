@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { Suspense } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
 
 function LoginForm() {
@@ -20,13 +20,21 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const supabase = createClient();
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
     setLoading(false);
-    if (err) {
-      setError(err.message);
+
+    if (!res.ok) {
+      setError(data.error || "Login failed.");
       return;
     }
+
     router.push(next);
     router.refresh();
   }
@@ -44,38 +52,12 @@ function LoginForm() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-        <Field
-          label="Email"
-          icon={<Mail className="h-4 w-4" />}
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@company.com"
-        />
-        <Field
-          label="Password"
-          icon={<Lock className="h-4 w-4" />}
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-        />
+        <Field label="Email" icon={<Mail className="h-4 w-4" />} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+        <Field label="Password" icon={<Lock className="h-4 w-4" />} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
 
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-azure-500 px-5 py-3 text-sm font-medium text-white shadow-card transition hover:bg-azure-400 disabled:opacity-60"
-        >
+        <button type="submit" disabled={loading} className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-azure-500 px-5 py-3 text-sm font-medium text-white shadow-card transition hover:bg-azure-400 disabled:opacity-60">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Sign in
           <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
@@ -87,11 +69,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-azure-500" />
-      </div>
-    }>
+    <Suspense>
       <LoginForm />
     </Suspense>
   );
