@@ -1,9 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const isMockMode =
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL.includes("lmasoabgzlsvxavihnqw");
+const isMockMode = false;
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
